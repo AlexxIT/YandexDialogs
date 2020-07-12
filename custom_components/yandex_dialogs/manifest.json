@@ -1,0 +1,10 @@
+{
+  "domain": "yandex_dialogs",
+  "name": "Yandex Dialogs",
+  "documentation": "https://github.com/AlexxIT/YandexDialogs",
+  "dependencies": [],
+  "codeowners": [
+    "@AlexxIT"
+  ],
+  "requirements": []
+}
