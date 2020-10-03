@@ -32,7 +32,8 @@ async def async_setup(hass: HomeAssistantType, hass_config: dict):
     hass.http.register_view(dialog)
 
     async def listener(event: Event):
-        dialog.response_text = event.data['text']
+        dialog.response_text = event.data.get('text')
+        dialog.response_end_session = event.data.get('end_session')
         dialog.response_waiter.set()
 
     hass.bus.async_listen('yandex_intent_response', listener)
@@ -50,6 +51,7 @@ class YandexDialog(HomeAssistantView):
     requires_auth = False
 
     response_text = None
+    response_end_session = None
     response_waiter = asyncio.Event()
 
     def __init__(self, hass: HomeAssistantType, user_ids: list):
@@ -106,6 +108,7 @@ class YandexDialog(HomeAssistantView):
             _LOGGER.debug(f"Request: {slots}")
 
             self.response_text = None
+            self.response_end_session = None
 
             try:
                 if intent_type in self.hass.data.get('intent', {}):
@@ -130,9 +133,14 @@ class YandexDialog(HomeAssistantView):
             except:
                 text = ''
 
-            _LOGGER.debug(f"Response: {text}")
+            if self.response_end_session is not None:
+                end_session = self.response_end_session
+            else:
+                end_session = (data['session']['new'] and
+                               request['command'] != '')
 
-            end_session = data['session']['new'] and bool(request['command'])
+            _LOGGER.debug(f"Response: {text}, end_session: {end_session}")
+
             return web.json_response({
                 'response': {
                     'text': text,

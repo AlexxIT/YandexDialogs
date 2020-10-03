@@ -35,6 +35,8 @@
    yandex_dialogs:
      name: Умный дом  # должно быть уникальное имя вашего навыка
    ```
+   
+   У вас должен быть настроен `exernal_url`. Это можно сделать либо в GUI (`http://ip:8123/config/core`), либо в [YAML](https://www.home-assistant.io/docs/configuration/basic/).
 
    После запуска в панели уведомлений Home Assistant будет сообщение с ссылкой на ваш навык.
 
@@ -169,6 +171,36 @@ automation:
           {{ trigger.event.data.x * trigger.event.data.y }}
         {% elif trigger.event.data.action == 'разделить на' %}
           {{ trigger.event.data.x / trigger.event.data.y }}
+        {% endif %}
+```
+
+### Управление продолжением диалога
+
+Фраза "Алиса включи навык Умный дома" включит навык и навык будет ждать вашей команды.
+
+Фраза "Алиса спроси у Умного дома сколько градусов в зале" - вызовет ваш навык, получит ответ и тут же выйдет из него назад к Алисе.
+
+Чтоб изменить это поведение, используйте параметр `end_session`. С ним вы можете либо продолжить разговор при фразе "Алиса спроси у Умного дома...". Либо прервать диалог в любом месте. Параметр опциональный при вызове `event: yandex_intent_response`.
+
+```yaml
+intent_script:
+  yandex_default:
+    action:
+    - service: persistent_notification.create
+      data:
+        title: Команда из Яндекса
+        message: "{{ text }}"
+    - event: yandex_intent_response
+      event_data:
+        end_session: True
+    speech:
+      text: >-
+        {% if text == 'привет' %}
+          {{ ['слушаю', 'здесь я', 'на связи']|random }}
+        {% elif text == 'температура в зале' %}
+          Температура {{ states("sensor.temperature_hall")|round }} °C
+        {% else %}
+          Не могу выполнить: {{ text }}
         {% endif %}
 ```
 
