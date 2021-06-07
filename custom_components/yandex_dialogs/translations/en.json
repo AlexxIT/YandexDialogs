@@ -1,0 +1,30 @@
+{
+  "config": {
+    "abort": {
+      "yandex_station": "Для автоматического создания диалога необходимо установить и настроить интеграцию [Yandex.Station](https://github.com/AlexxIT/YandexStation)",
+      "success": "Диалог успешно создан: [ссылка]({url})"
+    },
+    "step": {
+      "create": {
+        "title": "Создание Яндекс Диалога",
+        "data": {
+          "account": "Акаунт Яндекса",
+          "url": "HTTPS-адрес Home Assistant",
+          "name": "Название диалога"
+        },
+        "description": "{description}"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "user": {
+        "title": "Настройки Яндекс Диалога",
+        "data": {
+          "user_ids": "ID пользователей"
+        },
+        "description": "Введите идентификаторы пользователей через запятую"
+      }
+    }
+  }
+}

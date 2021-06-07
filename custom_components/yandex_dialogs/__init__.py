@@ -1,12 +1,11 @@
 import asyncio
 import logging
 
-import voluptuous as vol
 from aiohttp import web
 from homeassistant.components.http import HomeAssistantView
-from homeassistant.const import CONF_NAME
+from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.core import Event
-from homeassistant.helpers import config_validation as cv, intent
+from homeassistant.helpers import intent
 from homeassistant.helpers.typing import HomeAssistantType
 
 from . import utils
@@ -15,20 +14,26 @@ _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = 'yandex_dialogs'
 
-CONF_USER_IDS = 'allowed_user_ids'
-
-CONFIG_SCHEMA = vol.Schema({
-    DOMAIN: vol.Schema({
-        vol.Optional(CONF_NAME): cv.string,
-        vol.Optional(CONF_USER_IDS, default=[]): cv.ensure_list,
-    }, extra=vol.ALLOW_EXTRA),
-}, extra=vol.ALLOW_EXTRA)
+CONF_USER_IDS = 'user_ids'
 
 
 async def async_setup(hass: HomeAssistantType, hass_config: dict):
-    config = hass_config[DOMAIN]
+    if DOMAIN in hass_config:
+        hass.async_create_task(hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": SOURCE_IMPORT}
+        ))
+    return True
 
-    dialog = YandexDialog(hass, config[CONF_USER_IDS])
+
+async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry):
+    user_ids = entry.options.get(CONF_USER_IDS, [])
+
+    if DOMAIN in hass.data:
+        dialog: YandexDialog = hass.data[DOMAIN]
+        dialog.user_ids = user_ids
+        return True
+
+    hass.data[DOMAIN] = dialog = YandexDialog(hass, user_ids)
     hass.http.register_view(dialog)
 
     async def listener(event: Event):
@@ -38,10 +43,18 @@ async def async_setup(hass: HomeAssistantType, hass_config: dict):
 
     hass.bus.async_listen('yandex_intent_response', listener)
 
-    if 'name' in config:
-        coro = utils.create_dialog(hass, config['name'])
-        asyncio.create_task(coro)
+    # add options handler
+    if not entry.update_listeners:
+        entry.add_update_listener(async_update_options)
 
+    return True
+
+
+async def async_update_options(hass: HomeAssistantType, entry):
+    await hass.config_entries.async_reload(entry.entry_id)
+
+
+async def async_unload_entry(hass: HomeAssistantType, entry):
     return True
 
 
@@ -56,7 +69,7 @@ class YandexDialog(HomeAssistantView):
 
     def __init__(self, hass: HomeAssistantType, user_ids: list):
         self.hass = hass
-        self.allowed_user_ids = user_ids
+        self.user_ids = user_ids
 
     @staticmethod
     def empty(text='', end_session=False):
@@ -81,10 +94,10 @@ class YandexDialog(HomeAssistantView):
                 return self.empty()
 
             user_id = data['session']['user']['user_id']
-            if user_id not in self.allowed_user_ids:
+            if user_id not in self.user_ids:
                 if request['command'] == 'привет':
                     self.hass.components.persistent_notification.async_create(
-                        f"Новый пользователь: {user_id}",
+                        f"Новый пользователь: `{user_id}`",
                         title="Yandex Dialogs")
                     return self.empty(text="Умный дом на связи")
 
