@@ -35,8 +35,7 @@ async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry):
     hass.http.register_view(dialog)
 
     async def listener(event: Event):
-        dialog.response_text = event.data.get('text')
-        dialog.response_end_session = event.data.get('end_session')
+        dialog.response = event.data
         dialog.response_waiter.set()
 
     hass.bus.async_listen('yandex_intent_response', listener)
@@ -62,8 +61,8 @@ class YandexDialog(HomeAssistantView):
     name = 'api:yandex_dialogs'
     requires_auth = False
 
-    response_text = None
-    response_end_session = None
+    dialogs: dict = {}
+    response: dict = {}
     response_waiter = asyncio.Event()
 
     def __init__(self, hass: HomeAssistantType, user_ids: list):
@@ -71,11 +70,35 @@ class YandexDialog(HomeAssistantView):
         self.user_ids = user_ids
 
     @staticmethod
-    def empty(text='', end_session=False):
+    def empty(text=""):
         return web.json_response({
-            'response': {'text': text, 'end_session': end_session},
-            'version': '1.0'
+            "response": {"text": text, "end_session": True},
+            "version": "1.0"
         })
+
+    @staticmethod
+    def web_response(text="", end_session=True, **kwargs):
+        data = {
+            "response": {"text": text, "end_session": end_session},
+            "version": "1.0"
+        }
+
+        if "tts" in kwargs:
+            # text should be not empty of tts won't work
+            if not text:
+                data["response"]["text"] = "-"
+            data["response"]["tts"] = kwargs["tts"]
+
+        if "session" in kwargs:
+            data["session_state"] = kwargs["session"]
+        if "user" in kwargs:
+            data["user_state_update"] = kwargs["user"]
+        if "application" in kwargs:
+            data["application_state"] = kwargs["application"]
+
+        _LOGGER.debug(data)
+
+        return web.json_response(data)
 
     async def post(self, request: web.Request) -> web.Response:
         data = None
@@ -85,82 +108,66 @@ class YandexDialog(HomeAssistantView):
 
             _LOGGER.debug(data)
 
-            request = data['request']
-            if request['command'] == 'ping':
-                return self.empty(text='pong')
+            request = data["request"]
+            command: str = request["command"]
+            if command == "ping":
+                return self.empty(text="pong")
 
-            if 'user' not in data['session']:
+            user_id = data["session"]["user"]["user_id"]
+            if user_id not in self.user_ids:
+                _LOGGER.debug("Unknown user: " + user_id)
                 return self.empty()
 
-            user_id = data['session']['user']['user_id']
-            if user_id not in self.user_ids:
-                if request['command'] == 'привет':
-                    self.hass.components.persistent_notification.async_create(
-                        f"Новый пользователь: `{user_id}`",
-                        title="Yandex Dialogs")
-                    return self.empty(text="Умный дом на связи")
+            # sometimes we not exit from skill and receive new request
+            if request["original_utterance"].startswith("СКАЖИ НАВЫКУ"):
+                command = request["nlu"]["tokens"][-1]
 
-                else:
-                    return self.empty(text="Я тебя не знаю")
+            if command in self.dialogs:
+                response = self.dialogs.pop(command)
+                return self.web_response(**response)
 
-            slots = {
+            event_data = {
                 'text': request['original_utterance'],
                 'command': request['command'],
             }
 
-            intents = data['request']['nlu'].get('intents')
+            if "state" in data:
+                event_data.update(data["state"])
+
+            intents = request['nlu'].get('intents')
             if intents:
-                slots['intent'] = intent_type = next(iter(intents))
+                event_data['intent'] = intent_type = next(iter(intents))
                 for k, v in intents[intent_type]['slots'].items():
-                    slots[k] = v['value']
+                    event_data[k] = v['value']
 
             else:
                 intent_type = 'yandex_default'
 
-            _LOGGER.debug(f"Request: {slots}")
+            _LOGGER.debug(f"Request: {event_data}")
 
-            self.response_text = None
-            self.response_end_session = None
+            self.response.clear()
 
             try:
-                if intent_type in self.hass.data.get('intent', {}):
+                if intent_type in self.hass.data.get('intent', ""):
                     # run intent if exists
-                    slots = {k: {'value': v} for k, v in slots.items()}
-                    response = await intent.async_handle(
+                    slots = {k: {'value': v} for k, v in event_data.items()}
+                    resp = await intent.async_handle(
                         self.hass, DOMAIN, intent_type, slots,
-                        request['original_utterance'])
-                    if self.response_text:
-                        text = self.response_text
-                    elif response.speech:
-                        text = response.speech['plain']['speech']
-                    else:
-                        text = ''
+                        request['original_utterance']
+                    )
+                    if resp.speech:
+                        self.response["text"] = resp.speech['plain']['speech']
 
                 else:
                     self.response_waiter.clear()
-                    self.hass.bus.async_fire('yandex_intent', slots)
+                    self.hass.bus.async_fire('yandex_intent', event_data)
                     await asyncio.wait_for(self.response_waiter.wait(), 2.0)
-                    text = self.response_text
 
             except:
-                text = ''
+                pass
 
-            if self.response_end_session is not None:
-                end_session = self.response_end_session
-            else:
-                end_session = (data['session']['new'] and
-                               request['command'] != '')
-
-            _LOGGER.debug(f"Response: {text}, end_session: {end_session}")
-
-            return web.json_response({
-                'response': {
-                    'text': text,
-                    'end_session': end_session
-                },
-                'version': '1.0'
-            })
+            return self.web_response(**self.response)
 
         except:
             _LOGGER.exception(f"Yandex Dialog {data}")
-            return self.empty(end_session=True)
+            return self.empty()
