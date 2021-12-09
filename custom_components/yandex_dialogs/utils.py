@@ -71,10 +71,8 @@ async def create_dialog(hass: HomeAssistantType, name: str, hass_url: str,
 
         payload = {
             "activationPhrases": [name],
-            "appMetricaApiKey": "",
             "backendSettings": {
                 "backendType": "webhook",
-                "functionId": "",
                 "uri": hass_url + '/api/yandex_dialogs'
             },
             "exactSurfaces": [],
@@ -102,7 +100,7 @@ async def create_dialog(hass: HomeAssistantType, name: str, hass_url: str,
             "skillAccess": "private",
             "surfaceBlacklist": [],
             "surfaceWhitelist": [],
-            "useStateStorage": False,
+            "useStateStorage": True,
             "voice": "shitova.us",
             "yaCloudGrant": False
         }
