@@ -16,7 +16,7 @@ CONF_USER_IDS = 'user_ids'
 
 
 async def async_setup(hass: HomeAssistantType, hass_config: dict):
-    if DOMAIN in hass_config:
+    if DOMAIN in hass_config and not hass.config_entries.async_entries(DOMAIN):
         hass.async_create_task(hass.config_entries.flow.async_init(
             DOMAIN, context={"source": SOURCE_IMPORT}
         ))
