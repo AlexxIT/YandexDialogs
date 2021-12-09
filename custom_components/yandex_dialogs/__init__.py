@@ -8,8 +8,6 @@ from homeassistant.core import Event
 from homeassistant.helpers import intent
 from homeassistant.helpers.typing import HomeAssistantType
 
-from . import utils
-
 _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = 'yandex_dialogs'
@@ -54,6 +52,7 @@ async def async_update_options(hass: HomeAssistantType, entry):
     await hass.config_entries.async_reload(entry.entry_id)
 
 
+# noinspection PyUnusedLocal
 async def async_unload_entry(hass: HomeAssistantType, entry):
     return True
 
