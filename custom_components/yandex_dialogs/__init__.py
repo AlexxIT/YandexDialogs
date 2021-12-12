@@ -147,6 +147,10 @@ class YandexDialog(HomeAssistantView):
 
             self.response.clear()
 
+            # by default won't exit dialog on empty input
+            if data["session"]["new"] and request["command"] == "":
+                self.response["end_session"] = False
+
             try:
                 if intent_type in self.hass.data.get('intent', ""):
                     # run intent if exists
