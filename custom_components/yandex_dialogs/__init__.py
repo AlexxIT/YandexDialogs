@@ -132,7 +132,10 @@ class YandexDialog(HomeAssistantView):
             }
 
             if "state" in data:
-                event_data.update(data["state"])
+                # skip empty state because compare any with empty is True
+                for k in ("session", "user", "application"):
+                    if data["state"][k]:
+                        event_data[k] = data["state"][k]
 
             intents = request['nlu'].get('intents')
             if intents:
