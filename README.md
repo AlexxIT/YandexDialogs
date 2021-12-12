@@ -20,9 +20,7 @@
 
 ## Установка
 
-**Способ 1.** [HACS](https://hacs.xyz/)
-
-> HACS > Интеграции > 3 точки (правый верхний угол) > Пользовательские репозитории > URL: `AlexxIT/YandexDialogs`, Категория: Интеграция > Добавить > подождать > YandexDialogs > Установить
+**Способ 1.** [HACS](https://hacs.xyz/) > Интеграции > 3 точки (правый верхний угол) > Пользовательские репозитории > URL: `AlexxIT/YandexDialogs`, Категория: Интеграция > Добавить > подождать > YandexDialogs > Установить
 
 **Способ 2.** Вручную скопируйте папку `yandex_dialogs` из [latest release](https://github.com/AlexxIT/YandexDialogs/releases/latest) в директорию `/config/custom_components`.
 
@@ -49,6 +47,7 @@ yandex_dialogs:
 > Настройки > Интеграции > Добавить интеграцию > **Yandex Dialogs**
 
 И укажите:
+
 - аккаунт Яндекса, от имени которого создавать Диалог
 - публичную HTTPS-ссылку на ваш сервер Home Assistant
 - имя навыка (Яндекс требует имя из двух слов)
@@ -63,13 +62,13 @@ yandex_dialogs:
 
 **PS:** При желании можете самостоятельно создать приватный навык с Webhook на ваш Home Assistant: `https://myhome.duckdns.org/api/yandex_dialogs`
 
-### Управление через [автоматизации](https://www.home-assistant.io/docs/automation/) на событиях
+## Управление через [автоматизации](https://www.home-assistant.io/docs/automation/) на событиях
 
 **Внимание:** у вас пара секунд, чтоб вызвать событие с текстовым результатом ответа.
 
 Этот подход можно использовать в Node-RED.
 
-При обращении к навыку создаётся событие `yandex_intent` с полезными данными:
+При обращении к навыку создаётся событие `yandex_intent` с параметрами:
 
 - `text` - произнесённая фраза
 - `command` - фраза, почищенная от знаков препинания и числетельные преобразованы в числа
@@ -77,10 +76,16 @@ yandex_dialogs:
 - `session`, `user`, `application` - "хранилище" [состояний](https://yandex.ru/dev/dialogs/alice/doc/request.html#request__state-desc) диалога
 - `...` - другие переменные, которые вы прописали в Интенте в Яндекс.Диалогах
 
+Для ответа вы должны сами вызвать событие `yandex_intent_response` с параметрами:
+
+- `text` - опциональный, текст ответа
+- `tts` - опциональный, ответ в [формате TTS](https://yandex.ru/dev/dialogs/alice/doc/speech-tuning.html)
+- `end_session`, опциональный, по умолчанию `True`, "выйти" из диалога после ответа
+- `session`, `user`, `application` - опциональные, новое значение "хранилища" состояний. Состояния `session` и `application` не переносятся между разными шагами диалога автоматически! 
+
+Для ответа вы можете заполнить или `text` или `tts` в зависимости от того, нужно ли вам произнести ответ со [спецэффектами TTS](https://github.com/AlexxIT/YandexStation#%D1%81%D0%BF%D0%B5%D1%86%D1%8D%D1%84%D1%84%D0%B5%D0%BA%D1%82%D1%8B-%D0%B2-tts).
 
 ```yaml
-yandex_dialogs:
-
 automation:
 - trigger:
     platform: event
@@ -89,7 +94,7 @@ automation:
       text: привет  # проверяем точное совпадение с фразой "привет"
   action:
     event: yandex_intent_response  # это наш ответ навыку, нужно уложиться в пару секунд
-    event_data_template:
+    event_data:
       text: "{{ ['слушаю', 'здесь я', 'на связи']|random }}"
 
 - trigger:
@@ -99,11 +104,11 @@ automation:
       intent: calc  # проверяем на совпадение с Интентом калькулятора
   action:
   - service: persistent_notification.create
-    data_template:
+    data:
       title: Яндекс Калькулятор
       message: "{{ trigger.event.data.text }}"
   - event: yandex_intent_response
-    event_data_template:  # есть все переменные, как и в примере выше
+    event_data:  # есть все переменные, как и в примере выше
       text: >-
         {% if trigger.event.data.action == 'плюс' %}
           {{ trigger.event.data.x + trigger.event.data.y }}
@@ -116,39 +121,17 @@ automation:
         {% endif %}
 ```
 
-### Управление продолжением диалога
+## Управление продолжением диалога
 
 Фраза "Алиса включи навык Умный дома" включит навык и навык будет ждать вашей команды.
 
 Фраза "Алиса спроси у Умного дома сколько градусов в зале" - вызовет ваш навык, получит ответ и тут же выйдет из него назад к Алисе.
 
-Чтоб изменить это поведение, используйте параметр `end_session`. С ним вы можете либо продолжить разговор при фразе "Алиса спроси у Умного дома...". Либо прервать диалог в любом месте. Параметр опциональный при вызове `event: yandex_intent_response`.
+Чтоб изменить это поведение, используйте параметр `end_session`. С ним вы можете либо продолжить разговор при фразе "Алиса спроси у Умного дома...". Либо прервать диалог в любом месте.
 
-```yaml
-intent_script:
-  yandex_default:
-    action:
-    - service: persistent_notification.create
-      data:
-        title: Команда из Яндекса
-        message: "{{ text }}"
-    - event: yandex_intent_response
-      event_data:
-        end_session: True
-    speech:
-      text: >-
-        {% if text == 'привет' %}
-          {{ ['слушаю', 'здесь я', 'на связи']|random }}
-        {% elif text == 'температура в зале' %}
-          Температура {{ states("sensor.temperature_hall")|round }} °C
-        {% else %}
-          Не могу выполнить: {{ text }}
-        {% endif %}
-```
+## Управление через [Intent Script](https://www.home-assistant.io/integrations/intent_script/)
 
-### Управление через [Intent Script](https://www.home-assistant.io/integrations/intent_script/)
-
-Альтернативный способ управления диалогом.
+Альтернативный способ управления диалогом. Более сложный и не рекомендуется к использованию.
 
 Существует скрипт по умолчанию `yandex_default`. Он выполняется когда для фразы не совпал ни один Интент.
 
@@ -183,7 +166,7 @@ intent_script:
   calc:  # это Интент калькулятора (пример как настроить ниже)
     action:
     - service: persistent_notification.create
-      data_template:
+      data:
         title: Яндекс Калькулятор
         message: "{{ text }}"
     speech:  # в нём распознались переменные action, x и y
