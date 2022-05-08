@@ -25,7 +25,7 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             p = urlparse(user_input['url'])
             if p.scheme != 'https':
                 desc = "Обязательно использование HTTPS"
-                return self.async_step_create(desc=desc)
+                return await self.async_step_create(desc=desc)
 
             hass_url = f"{p.scheme}://{p.netloc}"
 
