@@ -4,7 +4,9 @@
   "config_flow": true,
   "documentation": "https://github.com/AlexxIT/YandexDialogs",
   "issue_tracker": "https://github.com/AlexxIT/YandexDialogs/issues",
-  "codeowners": ["@AlexxIT"],
+  "codeowners": [
+    "@AlexxIT"
+  ],
   "dependencies": [],
   "requirements": [],
   "version": "1.2",

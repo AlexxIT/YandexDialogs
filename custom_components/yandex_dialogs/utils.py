@@ -9,11 +9,12 @@ from homeassistant.helpers.typing import HomeAssistantType
 
 _LOGGER = logging.getLogger(__name__)
 
-INDEX = 'https://dialogs.yandex.ru/developer'
+INDEX = "https://dialogs.yandex.ru/developer"
 
 
-async def create_dialog(hass: HomeAssistantType, name: str, hass_url: str,
-                        cookies: str) -> (str, str):
+async def create_dialog(
+    hass: HomeAssistantType, name: str, hass_url: str, cookies: str
+) -> (str, str):
     try:
         raw = base64.b64decode(cookies)
 
@@ -23,57 +24,54 @@ async def create_dialog(hass: HomeAssistantType, name: str, hass_url: str,
         # check if skill exists
         r = await session.get(INDEX)
         if r.status != 200:
-            return {
-                'error': "Ошибка при проверке авторизации:\n" + await r.text()
-            }
+            return {"error": "Ошибка при проверке авторизации:\n" + await r.text()}
 
         data = await r.text()
         m = re.search(r'"secretkey":"(.+?)"', data)
-        headers = {'x-csrf-token': m[1]}
+        headers = {"x-csrf-token": m[1]}
 
         r = await session.get(f"{INDEX}/api/snapshot", headers=headers)
         if r.status != 200:
-            return {
-                'error': "Ошибка при чтении списка навыков:\n" + await r.text()
-            }
+            return {"error": "Ошибка при чтении списка навыков:\n" + await r.text()}
 
         data = await r.json()
-        for skill in data['result']['skills']:
-            if skill['name'] == name or skill['draft']['name'] == name:
+        for skill in data["result"]["skills"]:
+            if skill["name"] == name or skill["draft"]["name"] == name:
                 url = f"{INDEX}/skills/{skill['id']}"
                 _LOGGER.debug(f"Навык уже существует: {url}")
-                return {'error': "Навык уже существует", 'url': url}
+                return {"error": "Навык уже существует", "url": url}
 
         # create new skill
-        r = await session.post(f"{INDEX}/api/skills", headers=headers,
-                               json={'channel': 'aliceSkill'})
+        r = await session.post(
+            f"{INDEX}/api/skills", headers=headers, json={"channel": "aliceSkill"}
+        )
         if r.status != 201:
-            return {
-                'error': "Ошибка при создании навыка:\n" + await r.text()
-            }
+            return {"error": "Ошибка при создании навыка:\n" + await r.text()}
 
         data = await r.json()
-        skill_id = data['result']['id']
+        skill_id = data["result"]["id"]
         skill_url = f"{INDEX}/skills/{data['result']['id']}"
 
-        filename = path.join(path.dirname(path.abspath(__file__)), 'logo.png')
+        filename = path.join(path.dirname(path.abspath(__file__)), "logo.png")
         r = await session.post(
-            f"{INDEX}/api/skills/{skill_id}/logo", headers=headers,
-            data={'file': open(filename, 'rb')})
+            f"{INDEX}/api/skills/{skill_id}/logo",
+            headers=headers,
+            data={"file": open(filename, "rb")},
+        )
         if r.status != 201:
             return {
-                'error': "Ошибка при добавлении иконки:\n" + await r.text(),
-                'url': skill_url,
+                "error": "Ошибка при добавлении иконки:\n" + await r.text(),
+                "url": skill_url,
             }
 
         data = await r.json()
-        logo_id = data['result']['id']
+        logo_id = data["result"]["id"]
 
         payload = {
             "activationPhrases": [name],
             "backendSettings": {
                 "backendType": "webhook",
-                "uri": hass_url + '/api/yandex_dialogs'
+                "uri": hass_url + "/api/yandex_dialogs",
             },
             "exactSurfaces": [],
             "hideInStore": False,
@@ -89,11 +87,9 @@ async def create_dialog(hass: HomeAssistantType, name: str, hass_url: str,
                 "developerName": "Home Assistant",
                 "email": "",
                 "explicitContent": None,
-                "structuredExamples": [{
-                    "activationPhrase": name,
-                    "marker": "запусти навык",
-                    "request": ""
-                }]
+                "structuredExamples": [
+                    {"activationPhrase": name, "marker": "запусти навык", "request": ""}
+                ],
             },
             "requiredInterfaces": [],
             "rsyPlatformId": "",
@@ -102,52 +98,59 @@ async def create_dialog(hass: HomeAssistantType, name: str, hass_url: str,
             "surfaceWhitelist": [],
             "useStateStorage": True,
             "voice": "shitova.us",
-            "yaCloudGrant": False
+            "yaCloudGrant": False,
         }
-        r = await session.patch(f"{INDEX}/api/skills/{skill_id}/draft",
-                                headers=headers, json=payload)
+        r = await session.patch(
+            f"{INDEX}/api/skills/{skill_id}/draft", headers=headers, json=payload
+        )
         if r.status != 200:
             return {
-                'error': "Ошибка при настроке навыка:\n" + await r.text(),
-                'url': skill_url,
+                "error": "Ошибка при настроке навыка:\n" + await r.text(),
+                "url": skill_url,
             }
 
         # check if webhook works
-        payload = {"text": "", "isDraft": True, "sessionId": "",
-                   "sessionSeq": 0, "surface": "mobile",
-                   "isAnonymousUser": False}
-        r = await session.post(f"{INDEX}/api/skills/{skill_id}/message",
-                               headers=headers, json=payload)
+        payload = {
+            "text": "",
+            "isDraft": True,
+            "sessionId": "",
+            "sessionSeq": 0,
+            "surface": "mobile",
+            "isAnonymousUser": False,
+        }
+        r = await session.post(
+            f"{INDEX}/api/skills/{skill_id}/message", headers=headers, json=payload
+        )
         if r.status != 201:
             return {
-                'error': "Ошибка получения статуса:\n" + await r.text(),
-                'url': skill_url,
+                "error": "Ошибка получения статуса:\n" + await r.text(),
+                "url": skill_url,
             }
 
         data = await r.json()
-        error = data['result'].get('error')
+        error = data["result"].get("error")
         if error:
             _LOGGER.debug(f"Ошибка при создании навыка: {error}")
             return {
-                'error': "Ошибка при проверке навыка:\n" + error,
-                'url': skill_url,
+                "error": "Ошибка при проверке навыка:\n" + error,
+                "url": skill_url,
             }
 
-        user_id = data['result']['history']['request'] \
-            ['session']['user']['user_id']
+        user_id = data["result"]["history"]["request"]["session"]["user"]["user_id"]
 
         # publish skill
-        r = await session.post(f"{INDEX}/api/skills/{skill_id}/release",
-                               headers=headers)
+        r = await session.post(
+            f"{INDEX}/api/skills/{skill_id}/release", headers=headers
+        )
         if r.status != 201:
             return {
-                'error': "Ошибка публикации навыка:\n" + await r.text(),
-                'url': skill_url,
+                "error": "Ошибка публикации навыка:\n" + await r.text(),
+                "url": skill_url,
             }
 
         _LOGGER.debug("Навык успешно создан")
-        return {'url': skill_url, 'user_id': user_id}
+        return {"url": skill_url, "user_id": user_id}
 
     except Exception as e:
         _LOGGER.exception("Create Skill")
-        return {'error': repr(e)}
+        return {"error": repr(e)}

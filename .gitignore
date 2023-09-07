@@ -1,4 +1,3 @@
-
-custom_components/yandex_dialogs/__pycache__/
-
+__pycache__/
+.homeassistant/
 .idea/

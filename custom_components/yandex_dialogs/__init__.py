@@ -17,9 +17,11 @@ CONF_USER_IDS = 'user_ids'
 
 async def async_setup(hass: HomeAssistantType, hass_config: dict):
     if DOMAIN in hass_config and not hass.config_entries.async_entries(DOMAIN):
-        hass.async_create_task(hass.config_entries.flow.async_init(
-            DOMAIN, context={"source": SOURCE_IMPORT}
-        ))
+        hass.async_create_task(
+            hass.config_entries.flow.async_init(
+                DOMAIN, context={"source": SOURCE_IMPORT}
+            )
+        )
     return True
 
 
@@ -38,7 +40,7 @@ async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry):
         dialog.response = event.data
         dialog.response_waiter.set()
 
-    hass.bus.async_listen('yandex_intent_response', listener)
+    hass.bus.async_listen("yandex_intent_response", listener)
 
     # add options handler
     if not entry.update_listeners:
@@ -57,8 +59,8 @@ async def async_unload_entry(hass: HomeAssistantType, entry):
 
 
 class YandexDialog(HomeAssistantView):
-    url = '/api/yandex_dialogs'
-    name = 'api:yandex_dialogs'
+    url = "/api/yandex_dialogs"
+    name = "api:yandex_dialogs"
     requires_auth = False
 
     dialogs: dict = {}
@@ -71,16 +73,15 @@ class YandexDialog(HomeAssistantView):
 
     @staticmethod
     def empty(text=""):
-        return web.json_response({
-            "response": {"text": text, "end_session": True},
-            "version": "1.0"
-        })
+        return web.json_response(
+            {"response": {"text": text, "end_session": True}, "version": "1.0"}
+        )
 
     @staticmethod
     def web_response(text="", end_session=True, **kwargs):
         data = {
             "response": {"text": text, "end_session": end_session},
-            "version": "1.0"
+            "version": "1.0",
         }
 
         if "tts" in kwargs:
@@ -127,8 +128,8 @@ class YandexDialog(HomeAssistantView):
                 return self.web_response(**response)
 
             event_data = {
-                'text': request['original_utterance'],
-                'command': request['command'],
+                "text": request["original_utterance"],
+                "command": request["command"],
             }
 
             if "state" in data:
@@ -137,14 +138,14 @@ class YandexDialog(HomeAssistantView):
                     if data["state"][k]:
                         event_data[k] = data["state"][k]
 
-            intents = request['nlu'].get('intents')
+            intents = request["nlu"].get("intents")
             if intents:
-                event_data['intent'] = intent_type = next(iter(intents))
-                for k, v in intents[intent_type]['slots'].items():
-                    event_data[k] = v['value']
+                event_data["intent"] = intent_type = next(iter(intents))
+                for k, v in intents[intent_type]["slots"].items():
+                    event_data[k] = v["value"]
 
             else:
-                intent_type = 'yandex_default'
+                intent_type = "yandex_default"
 
             _LOGGER.debug(f"Request: {event_data}")
 
@@ -155,19 +156,22 @@ class YandexDialog(HomeAssistantView):
                 self.response["end_session"] = False
 
             try:
-                if intent_type in self.hass.data.get('intent', ""):
+                if intent_type in self.hass.data.get("intent", ""):
                     # run intent if exists
-                    slots = {k: {'value': v} for k, v in event_data.items()}
+                    slots = {k: {"value": v} for k, v in event_data.items()}
                     resp = await intent.async_handle(
-                        self.hass, DOMAIN, intent_type, slots,
-                        request['original_utterance']
+                        self.hass,
+                        DOMAIN,
+                        intent_type,
+                        slots,
+                        request["original_utterance"],
                     )
                     if resp.speech:
-                        self.response["text"] = resp.speech['plain']['speech']
+                        self.response["text"] = resp.speech["plain"]["speech"]
 
                 else:
                     self.response_waiter.clear()
-                    self.hass.bus.async_fire('yandex_intent', event_data)
+                    self.hass.bus.async_fire("yandex_intent", event_data)
                     await asyncio.wait_for(self.response_waiter.wait(), 2.0)
 
             except:
