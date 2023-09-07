@@ -1,8 +1,7 @@
 # Яндекс.Диалоги для Assistant через 
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
-[![Donate](https://img.shields.io/badge/donate-BuyMeCoffee-yellow.svg)](https://www.buymeacoffee.com/AlexxIT)
-[![Donate](https://img.shields.io/badge/donate-YooMoney-8C3FFD.svg)](https://yoomoney.ru/to/41001428278477)
+[![](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
+![](https://img.shields.io/github/stars/AlexxIT/YandexDialogs?style=flat-square&logo=github)
 
 Компонент позволяет управлять [Home Assistant](https://www.home-assistant.io/) из [Яндекс Алисы](https://yandex.ru/alice) через собственный навык в [Яндекс.Диалогах](https://dialogs.yandex.ru/developer).
 
