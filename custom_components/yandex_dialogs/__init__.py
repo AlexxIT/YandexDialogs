@@ -65,10 +65,11 @@ async def async_setup(hass: HomeAssistant, hass_config: dict):
     if req := config.get(CONF_REQUIREMENTS):
         hass.async_create_task(async_process_requirements(hass, DOMAIN, req))
 
-    if config.get(CONF_CACHE) is False:
-        dialog.handler = nocache_handler(hass.config.path(config[CONF_FILE]))
-    elif file := config.get(CONF_FILE):
-        dialog.handler = file_handler(hass.config.path(file))
+    if file := config.get(CONF_FILE):
+        file = hass.config.path(file)
+        dialog.handler = (
+            file_handler(file) if config.get(CONF_CACHE) else nocache_handler(file)
+        )
     elif source := config.get(CONF_SOURCE):
         dialog.handler = source_handler(source)
 
