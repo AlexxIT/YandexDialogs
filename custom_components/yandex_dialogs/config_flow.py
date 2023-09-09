@@ -105,6 +105,5 @@ class OptionsFlowHandler(OptionsFlow):
         )
 
     async def async_step_user(self, user_input: dict = None):
-        user_ids = user_input[CONF_USER_IDS].strip()
-        user_ids = re.split(r"\s*,\s*", user_ids)
+        user_ids = re.findall(r"[0-9A-F]+", user_input[CONF_USER_IDS])
         return self.async_create_entry(title="", data={CONF_USER_IDS: user_ids})

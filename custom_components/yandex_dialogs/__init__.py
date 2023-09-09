@@ -77,7 +77,7 @@ async def async_setup(hass: HomeAssistant, hass_config: dict):
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     dialog: YandexDialog = hass.data[DOMAIN]
-    dialog.user_ids = config_entry.options.get(CONF_USER_IDS, [])
+    dialog.user_ids = config_entry.options.get(CONF_USER_IDS)
 
     if not config_entry.update_listeners:
         config_entry.add_update_listener(async_update_options)
@@ -99,7 +99,7 @@ class YandexDialog(HomeAssistantView):
     name = "api:yandex_dialogs"
     requires_auth = False
 
-    user_ids: list = []
+    user_ids: list = None
     dialogs: dict = {}
 
     handler: Callable = None
@@ -121,11 +121,12 @@ class YandexDialog(HomeAssistantView):
             if command == "ping":
                 return empty_response(text="pong")
 
-            # 2. check allowed user
-            user_id = event["session"]["user"]["user_id"]
-            if user_id not in self.user_ids:
-                _LOGGER.debug("Unknown user: " + user_id)
-                return empty_response()
+            # 2. check allowed user (only if users not null)
+            if self.user_ids:
+                user_id = event["session"]["user"]["user_id"]
+                if user_id not in self.user_ids:
+                    _LOGGER.debug("Unknown user: " + user_id)
+                    return empty_response()
 
             # sometimes we not exit from skill and receive new request
             if event["request"]["original_utterance"].startswith("СКАЖИ НАВЫКУ"):
