@@ -1,14 +1,16 @@
 {
   "domain": "yandex_dialogs",
   "name": "Yandex Dialogs",
-  "config_flow": true,
-  "documentation": "https://github.com/AlexxIT/YandexDialogs",
-  "issue_tracker": "https://github.com/AlexxIT/YandexDialogs/issues",
   "codeowners": [
     "@AlexxIT"
   ],
-  "dependencies": [],
+  "config_flow": true,
+  "dependencies": [
+    "http"
+  ],
+  "documentation": "https://github.com/AlexxIT/YandexDialogs",
+  "iot_class": "cloud_push",
+  "issue_tracker": "https://github.com/AlexxIT/YandexDialogs/issues",
   "requirements": [],
-  "version": "1.3.0",
-  "iot_class": "cloud_push"
+  "version": "1.3.0"
 }
