@@ -1,4 +1,5 @@
 {
     "name": "Yandex Dialogs",
-    "render_readme": true
+    "render_readme": true,
+    "country": ["RU", "BY", "KZ", "UA"]
 }
