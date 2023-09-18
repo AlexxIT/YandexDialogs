@@ -265,11 +265,11 @@ def handler(event: dict, context: dict) -> dict:
 
 Интенты можно настраивать только после публикации навыка. Любые изменения в интентах требуют новой публикации (занимает пару минут).
 
-![](intents1.png)
+![](assets/intents1.png)
 
 ### Пример калькулятора
 
-![](intents2.png)
+![](assets/intents2.png)
 
 ```
 root:
@@ -293,7 +293,7 @@ $action:
 
 ### Пример тепературы в разных помещениях
 
-![](intents3.png)
+![](assets/intents3.png)
 
 ```
 root:
