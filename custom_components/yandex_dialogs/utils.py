@@ -4,8 +4,8 @@ import pickle
 import re
 from os import path
 
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
-from homeassistant.helpers.typing import HomeAssistantType
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ INDEX = "https://dialogs.yandex.ru/developer"
 
 
 async def create_dialog(
-    hass: HomeAssistantType, name: str, hass_url: str, cookies: str
+    hass: HomeAssistant, name: str, hass_url: str, cookies: str
 ) -> (str, str):
     try:
         raw = base64.b64decode(cookies)
