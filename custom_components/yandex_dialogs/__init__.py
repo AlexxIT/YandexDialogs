@@ -232,19 +232,10 @@ def web_response(text="", end_session=True, **kwargs):
     return web.json_response(data)
 
 
-def exec_handler(source: str) -> Callable | None:
-    try:
-        exec(source)
-        return locals()["handler"]
-    except Exception as e:
-        _LOGGER.exception(f"Error executing script: {e}")
-        return None
-
-
 def source_handler(source: str) -> Callable:
-    exec(source)
-    globals().update(locals())
-    return locals()["handler"]
+    vars = {**globals(), **locals()}
+    exec(source, vars)
+    return vars["handler"]
 
 
 def file_handler(file: str) -> Callable:
