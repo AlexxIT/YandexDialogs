@@ -43,14 +43,21 @@ async def create_dialog(
 
         # create new skill
         r = await session.post(
-            f"{INDEX}/api/skills", headers=headers, json={"channel": "aliceSkill"}
+            f"{INDEX}/app-store-api/apps",
+            headers=headers,
+            json={
+                "channel": "aliceSkill",
+                "language": "ru",
+                "isYangoConsole": False,
+                "appName": name,
+            },
         )
-        if r.status != 201:
+        if r.status != 200:
             return {"error": "Ошибка при создании навыка:\n" + await r.text()}
 
         data = await r.json()
-        skill_id = data["result"]["id"]
-        skill_url = f"{INDEX}/skills/{data['result']['id']}"
+        skill_id = data["result"]["skill_id"]
+        skill_url = f"{INDEX}/skills/{skill_id}"
 
         filename = path.join(path.dirname(path.abspath(__file__)), "logo.png")
         r = await session.post(
@@ -69,10 +76,12 @@ async def create_dialog(
 
         payload = {
             "activationPhrases": [name],
+            "appMetricaApiKey": "",
             "backendSettings": {
                 "backendType": "webhook",
                 "uri": hass_url + "/api/yandex_dialogs",
             },
+            "channel": "aliceSkill",
             "exactSurfaces": [],
             "hideInStore": False,
             "logo2": None,
@@ -86,7 +95,7 @@ async def create_dialog(
                 "description": "Home Assistant",
                 "developerName": "Home Assistant",
                 "email": "",
-                "explicitContent": None,
+                "explicitContent": False,
                 "structuredExamples": [
                     {"activationPhrase": name, "marker": "запусти навык", "request": ""}
                 ],
@@ -101,7 +110,9 @@ async def create_dialog(
             "yaCloudGrant": False,
         }
         r = await session.patch(
-            f"{INDEX}/api/skills/{skill_id}/draft", headers=headers, json=payload
+            f"{INDEX}/app-store-api/apps/{skill_id}/draft/update",
+            headers=headers,
+            json=payload,
         )
         if r.status != 200:
             return {
