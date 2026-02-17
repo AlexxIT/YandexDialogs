@@ -60,10 +60,11 @@ async def create_dialog(
         skill_url = f"{INDEX}/skills/{skill_id}"
 
         filename = path.join(path.dirname(path.abspath(__file__)), "logo.png")
+        file = await hass.async_add_executor_job(open, filename, "rb")
         r = await session.post(
             f"{INDEX}/api/skills/{skill_id}/logo",
             headers=headers,
-            data={"file": open(filename, "rb")},
+            data={"file": file},
         )
         if r.status != 201:
             return {
