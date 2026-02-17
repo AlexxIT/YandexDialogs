@@ -37,7 +37,9 @@
 
 ## Установка
 
-**Способ 1.** [HACS](https://hacs.xyz/) > Интеграции > 3 точки (правый верхний угол) > Пользовательские репозитории > URL: `AlexxIT/YandexDialogs`, Категория: Интеграция > Добавить > подождать > YandexDialogs > Установить
+[![](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=AlexxIT&repository=YandexDialogs&category=Integration)
+
+**Способ 1.** [HACS](https://hacs.xyz/) > 3 точки (правый верхний угол) > Пользовательские репозитории > URL: `AlexxIT/YandexDialogs`, Категория: Интеграция > Добавить > подождать > YandexDialogs > Установить
 
 **Способ 2.** Вручную скопируйте папку `yandex_dialogs` из [latest release](https://github.com/AlexxIT/YandexDialogs/releases/latest) в директорию `/config/custom_components`.
 
